@@ -20,6 +20,8 @@ export default createTestingLibraryRule<Options, MessageIds>({
 	name: RULE_NAME,
 	meta: {
 		type: 'problem',
+		fixable: 'code',
+		hasSuggestions: true,
 		docs: {
 			description:
 				'Disallow wrapping Testing Library utils or empty callbacks in `act`',
@@ -124,6 +126,8 @@ export default createTestingLibraryRule<Options, MessageIds>({
 				| TSESTree.CallExpression
 				| undefined;
 
+			const bodyExpressions = functionNode?.body as TSESTree.BlockStatement;
+
 			if (!callExpressionNode || !functionNode) {
 				return;
 			}
@@ -153,6 +157,38 @@ export default createTestingLibraryRule<Options, MessageIds>({
 				context.report({
 					node: identifierNode,
 					messageId: 'noUnnecessaryActTestingLibraryUtil',
+					*fix(fixer) {
+						const first = bodyExpressions?.body[0];
+						const last = bodyExpressions?.body[bodyExpressions.body.length - 1];
+
+						yield fixer.replaceTextRange(
+							[callExpressionNode.range[0], first.range[0]],
+							''
+						);
+						yield fixer.replaceTextRange(
+							[last.range[1], callExpressionNode.range[1]],
+							''
+						);
+					},
+					suggest: [
+						{
+							messageId: 'noUnnecessaryActTestingLibraryUtil',
+							*fix(fixer) {
+								const first = bodyExpressions?.body[0];
+								const last =
+									bodyExpressions?.body[bodyExpressions.body.length - 1];
+
+								yield fixer.replaceTextRange(
+									[callExpressionNode.range[0], first.range[0]],
+									''
+								);
+								yield fixer.replaceTextRange(
+									[last.range[1], callExpressionNode.range[1]],
+									''
+								);
+							},
+						},
+					],
 				});
 			}
 		}
